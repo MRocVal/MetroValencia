@@ -46,19 +46,8 @@ def calcular_tiempo_restante(hora_llegada):
     ahora = datetime.now().strftime(formato)
     hora_actual = datetime.strptime(ahora, formato)
     hora_llegada_dt = datetime.strptime(hora_llegada, formato)
-    
-    # Si la hora de llegada es menor a la hora actual, añadir un día
-    if hora_llegada_dt < hora_actual:
-        hora_llegada_dt += timedelta(days=1)
-    
     tiempo_restante = hora_llegada_dt - hora_actual
-    total_segundos = int(tiempo_restante.total_seconds())
-    
-    horas, resto = divmod(total_segundos, 3600)
-    minutos, segundos = divmod(resto, 60)
-    
-    tiempo_restante_str = f"{horas:02}:{minutos:02}:{segundos:02}"
-    return tiempo_restante_str
+    return str(tiempo_restante)
 
 # :::::::::::::::::::::::::::: INTERFAZ DE USUARIO :::::::::::::::::::::::::::::
 
