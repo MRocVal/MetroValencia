@@ -52,12 +52,11 @@ def calcular_tiempo_restante(hora_llegada):
         hora_llegada_dt += timedelta(days=1)
     
     tiempo_restante = hora_llegada_dt - hora_actual
-    total_segundos = int(tiempo_restante.total_seconds())
+    tiempo_restante_str = str(tiempo_restante)
     
-    minutos, segundos = divmod(total_segundos, 60)
-    
-    tiempo_restante_str = f"{minutos:02}:{segundos:02}"
-    return tiempo_restante_str
+    # Buscar y extraer solo los minutos y segundos
+    minutos_segundos = tiempo_restante_str.split(":")[1:]
+    return ":".join(minutos_segundos)
 
 # :::::::::::::::::::::::::::: INTERFAZ DE USUARIO :::::::::::::::::::::::::::::
 
