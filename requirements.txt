@@ -2,6 +2,4 @@ streamlit
 pandas 
 pydeck 
 requests
-bs4 
-datetime
-time
+beautifulsoup4 
