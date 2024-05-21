@@ -52,7 +52,13 @@ def calcular_tiempo_restante(hora_llegada):
         hora_llegada_dt += timedelta(days=1)
     
     tiempo_restante = hora_llegada_dt - hora_actual
-    return str(tiempo_restante)
+    total_segundos = int(tiempo_restante.total_seconds())
+    
+    horas, resto = divmod(total_segundos, 3600)
+    minutos, segundos = divmod(resto, 60)
+    
+    tiempo_restante_str = f"{horas:02}:{minutos:02}:{segundos:02}"
+    return tiempo_restante_str
 
 # :::::::::::::::::::::::::::: INTERFAZ DE USUARIO :::::::::::::::::::::::::::::
 
