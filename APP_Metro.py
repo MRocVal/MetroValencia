@@ -42,7 +42,7 @@ def obtener_proximos_movimientos(url):
 
 # Función para calcular el tiempo restante
 def calcular_tiempo_restante(hora_llegada):
-    formato = ':%M:%S'
+    formato = '%M:%S'
     ahora = datetime.now().strftime(formato)
     hora_actual = datetime.strptime(ahora, formato)
     hora_llegada_dt = datetime.strptime(hora_llegada, formato)
