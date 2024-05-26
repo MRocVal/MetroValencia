@@ -70,7 +70,7 @@ pagina = st.sidebar.selectbox('Selecciona una página', ['Inicio','Próximas Lle
 
 if pagina == 'Inicio':
     
-    st.title(" Bienvenidos a Nuestra Aplicación de Gestión de Viajes en Metro")
+    st.title("Valencia al minuto")
     
     st.image('foto_metro_1.jpg')
     # Sección para próximas llegadas y salidas
