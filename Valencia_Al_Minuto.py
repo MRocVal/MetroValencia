@@ -10,7 +10,7 @@ import pandas as pd
 import pydeck as pdk
 import requests
 from bs4 import BeautifulSoup
-from datetime import datetime
+from datetime import datetime, timedelta
 import time
 
 # ::::::::::::::::::::::::::::: FUNCIONES ::::::::::::::::::::::::::::::::
@@ -29,6 +29,46 @@ def obtener_proximos_movimientos(url):
             numero_linea = div.find('img')['src'].split('_')[-1].split('.')[0]
             destino = div.find('b').text.strip()  # Extrae el destino
             tiempo = div.find_all('span')[-1].text.strip()  # Extrae el tiempo
+            movimientos.append({
+                "Número de Línea": numero_linea,
+                "Destino": destino,
+                "Tiempo": tiempo
+            })
+        
+        return movimientos
+    except requests.RequestException as e:
+        st.error(f"Error al obtener los datos de {url}: {e}")
+        return []
+    
+def obtener_proximos_movimientos_bus(url):
+    try:
+        response = requests.get(url)
+        response.raise_for_status()  # Verifica si la solicitud fue exitosa
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # Extraer la información específica de llegadas o salidas
+        movimientos = []
+        for div in soup.find_all('div', style=lambda value: value and 'padding-left: 5px' in value):
+            imagen = div.find('img')
+            if imagen:
+                # Extraer el número de la línea desde la URL de la imagen
+                numero_linea = imagen['src'].split('_')[-1].split('.')[0]
+            else:
+                numero_linea = "Desconocido"
+
+            b_tag = div.find('b')
+            if b_tag:
+                destino = b_tag.text.strip()  # Extrae el destino
+            else:
+                destino = "Destino desconocido"
+
+            span_tags = div.find_all('span')
+            if span_tags:
+                # Extrae el tiempo y lo deja en el formato deseado (P. Congressos - 21 min)
+                tiempo = span_tags[-1].text.strip()  
+            else:
+                tiempo = "Tiempo desconocido"
+
             movimientos.append({
                 "Número de Línea": numero_linea,
                 "Destino": destino,
@@ -58,17 +98,31 @@ def calcular_tiempo_restante(hora_llegada):
     minutos_segundos = tiempo_restante_str.split(":")[1:]
     return ":".join(minutos_segundos)
 
+
+
+def calcular_tiempo_restante_bus(hora_llegada):
+    try:
+        # Extraer solo los minutos del texto
+        minutos = int(hora_llegada.split('min')[0].split('-')[-1].strip())
+        tiempo_restante = timedelta(minutes=minutos)
+        # Formatear el tiempo restante para mostrar solo horas y minutos
+        tiempo_restante_str = f'{tiempo_restante.seconds//3600:02d}:{(tiempo_restante.seconds//60)%60:02d}'
+        return tiempo_restante_str
+    except ValueError:
+        return "Tiempo desconocido"
+
 # :::::::::::::::::::::::::::: INTERFAZ DE USUARIO :::::::::::::::::::::::::::::
 
 
 # Cargar los datos
 data = pd.read_csv('fgv-bocas.csv', delimiter=';')
+data_EMT = pd.read_csv('emt.csv', delimiter=';')
 
 # Menú de navegación en la barra lateral
-pagina = st.sidebar.selectbox('Selecciona una página', ['Inicio','Próximas Llegadas y Salidas', 'Mapa Interactivo'])
+pagina = st.sidebar.selectbox('Selecciona una página', ['Home','Horario MetroValencia', 'Mapa Interactivo', 'Horarios EMT'])
 
 
-if pagina == 'Inicio':
+if pagina == 'Home':
     
     st.title("VALENCIA AL MINUTO")
     
@@ -99,7 +153,7 @@ En resumen, nuestra aplicación nace de la necesidad de una solución que ofrezc
     """)
     
 
-elif pagina == 'Próximas Llegadas y Salidas':
+elif pagina == 'Horario MetroValencia':
     data = pd.read_csv('fgv-bocas.csv', delimiter=';')
     # Sección para próximas llegadas y salidas
     st.markdown("""
@@ -211,6 +265,45 @@ elif pagina == 'Mapa Interactivo':
     else:
         st.write("No data available for the selected lines.")
 
+elif pagina == 'Horarios EMT':
+    st.markdown("""
+    # Próximas Llegadas de Autobuses
+    Consulta rápida de las próximas llegadas en tu parada de autobús.
+    Selecciona una parada y obtén información actualizada de los próximos autobuses.
+    """)
+    st.image('bus.jpg')  # Asegúrate de tener una imagen apropiada o elimina esta línea
 
+    # Filtrar datos para la selección de paradas de autobús y ordenar alfabéticamente
+    paradas = sorted(data_EMT['Denominació / Denominación'].unique())
+    
+    # Entrada de texto para la parada de autobús
+    parada_input = st.text_input('Introduce el nombre o el número de la parada:')
+    paradas_filtradas = [parada for parada in paradas if parada_input.lower() in parada.lower()]
+    
+    parada_seleccionada = st.selectbox('Selecciona una parada:', paradas_filtradas)
+    
+    if parada_seleccionada:
+        # Verificar si la parada ingresada existe en el DataFrame
+        if parada_seleccionada in data_EMT['Denominació / Denominación'].values:
+            url_llegadas = data_EMT[data_EMT['Denominació / Denominación'] == parada_seleccionada]['Pròximes Arribades / Proximas Llegadas'].values[0]
+            
+            llegadas = obtener_proximos_movimientos_bus(url_llegadas)
+            
+            # Calcular el tiempo restante para llegadas
+            for llegada in llegadas:
+                llegada["Tiempo Restante"] = calcular_tiempo_restante_bus(llegada["Tiempo"])
+            
+            st.markdown(f"### Próximas llegadas para la parada: {parada_seleccionada}")
+            df_llegadas = pd.DataFrame(llegadas).sort_values(by="Tiempo Restante")
+        
+            df_llegadas['Tiempo'].apply(lambda x: st.markdown(f"<h3 style='font-size:50px;'>{x}</h3>", unsafe_allow_html=True))
+            
+            # Añadir una pausa de 60 segundos para la actualización
+            time.sleep(1)
+            st.experimental_rerun()
+        
+        else:
+            st.write("La parada introducida no se encuentra en el conjunto de datos.")
+    
 
 
